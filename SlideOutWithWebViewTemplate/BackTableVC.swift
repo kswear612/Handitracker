@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import os.log
 
 class BackTableVC: UITableViewController {
     
@@ -15,7 +16,8 @@ class BackTableVC: UITableViewController {
     
     //MARK: Functions
     override func viewDidLoad() {
-        tableArray = ["Home", "Screen1", "Screen2", "Screen3"]
+        tableArray = ["Home", "FDLIC", "Google", "Yahoo"]
+        self.tableView.backgroundColor = UIColor.lightGray
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -26,9 +28,11 @@ class BackTableVC: UITableViewController {
         let cell = tableView.dequeueReusableCell(withIdentifier: tableArray[indexPath.row], for: indexPath) as UITableViewCell
         
         cell.textLabel?.text = tableArray[indexPath.row]
+        cell.textLabel?.font = UIFont.boldSystemFont(ofSize: 16.0)
+        cell.textLabel?.textColor = UIColor.white
+        cell.backgroundColor = UIColor.lightGray
         
         return cell
     }
-    
     
 }

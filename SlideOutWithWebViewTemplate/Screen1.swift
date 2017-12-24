@@ -1,5 +1,5 @@
 //
-//  Screen3.swift
+//  Screen1.swift
 //  SlideOutMenuTemplate
 //
 //  Created by Kyle Swearingen on 12/10/17.
@@ -7,11 +7,13 @@
 //
 
 import Foundation
+import WebKit
 
-class Screen3: UIViewController {
+class Screen1: UIViewController {
     
     //MARK: Properties
     @IBOutlet weak var open: UIBarButtonItem!
+    @IBOutlet weak var webView: WKWebView!
     
     override func viewDidLoad() {
         // Makes the hamburger menu reveal
@@ -20,5 +22,10 @@ class Screen3: UIViewController {
         
         // Recognize right swipe gesture
         self.view.addGestureRecognizer(self.revealViewController().panGestureRecognizer())
+        
+        let url = URL(string: "https://www.fdliconline.com/login")
+        let request = URLRequest(url: url!)
+        
+        webView.load(request)
     }
 }

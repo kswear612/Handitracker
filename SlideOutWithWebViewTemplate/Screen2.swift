@@ -7,12 +7,14 @@
 //
 
 import Foundation
+import WebKit
 
 class Screen2: UIViewController {
     
     //MARK: Properties
     @IBOutlet weak var open: UIBarButtonItem!
-
+    @IBOutlet weak var webView: WKWebView!
+    
     override func viewDidLoad() {
         // Makes the hamburger menu reveal
         open.target = self.revealViewController()
@@ -20,5 +22,10 @@ class Screen2: UIViewController {
         
         // Recognize right swipe gesture
         self.view.addGestureRecognizer(self.revealViewController().panGestureRecognizer())
+        
+        let url = URL(string: "https://www.google.com")
+        let request = URLRequest(url: url!)
+        
+        webView.load(request)
     }
 }
