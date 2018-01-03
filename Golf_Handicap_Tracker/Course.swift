@@ -15,7 +15,7 @@ class Course: NSObject, NSCoding {
     var courseName: String
     var photo: UIImage?
     var courseRating: Double
-    var courseSlope: Double
+    var courseSlope: Int
     
     //MARK: Archiving Paths
     static let DocumentsDirectory = FileManager().urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -30,7 +30,7 @@ class Course: NSObject, NSCoding {
     }
     
     //MARK: Initialization
-    init?(courseName: String, photo: UIImage?, courseRating: Double, courseSlope: Double) {
+    init?(courseName: String, photo: UIImage?, courseRating: Double, courseSlope: Int) {
         // The course name must not be empty
         guard !courseName.isEmpty else {
             return nil
@@ -70,17 +70,8 @@ class Course: NSObject, NSCoding {
         // Because photo is an optional property of Course, just used conditional cast
         let photo = aDecoder.decodeObject(forKey: PropertyKey.photo) as? UIImage
         
-        // The courseRating is required. If we cannot decode a courseRating double, the initializer should fail
-        guard let courseRating = aDecoder.decodeObject(forKey: PropertyKey.courseRating) as? Double else {
-            os_log("Unable to decode the course rating for a Course object", log: OSLog.default, type: .debug)
-            return nil
-        }
-        
-        // The courseSlope is required. If we cannot decode a courseSlope double, the initializer should fail
-        guard let courseSlope = aDecoder.decodeObject(forKey: PropertyKey.courseSlope) as? Double else {
-            os_log("Unable to decode the course slope for a Course object", log: OSLog.default, type: .debug)
-            return nil
-        }
+        let courseRating = aDecoder.decodeDouble(forKey: PropertyKey.courseRating)
+        let courseSlope = aDecoder.decodeInteger(forKey: PropertyKey.courseSlope)
         
         self.init(courseName: courseName, photo: photo, courseRating: courseRating, courseSlope: courseSlope)
     }
