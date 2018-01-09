@@ -19,7 +19,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Override point for customization after application launch.
         // set up your background color view
         let colorView = UIView()
-        colorView.backgroundColor = UIColor.init(red: 27/255, green: 69/255, blue: 104/255, alpha: 1.0)
+        colorView.backgroundColor = UIColor.init(red: 3/255, green: 121/255, blue: 0/255, alpha: 1.0)
         
         // use UITableViewCell.appearance() to configure
         // the default appearance of all UITableViewCells in your app

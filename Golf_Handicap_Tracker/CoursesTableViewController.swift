@@ -8,12 +8,14 @@
 
 import UIKit
 import os.log
+import CoreGraphics
 
 class CoursesTableViewController: UITableViewController {
 
     //MARK: Properties
     @IBOutlet weak var open: UIBarButtonItem!
     var courses = [Course]()
+    let handicapLabel = UILabel()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -69,6 +71,14 @@ class CoursesTableViewController: UITableViewController {
         cell.photoImageView.image = course.photo
         cell.courseRatingLabel.text = course.courseRating.description
         cell.courseSlopeLabel.text = course.courseSlope.description
+        
+        let width:CGFloat = UIScreen.main.bounds.width*0.0533
+        handicapLabel.frame = CGRect(x: 0, y: 0, width: width, height: width)
+        handicapLabel.layer.masksToBounds = true
+        handicapLabel.layer.cornerRadius = width/2
+        handicapLabel.backgroundColor = UIColor.lightGray
+        handicapLabel.text = "CIRCLE"
+        cell.contentView.addSubview(handicapLabel)
 
         return cell
     }
@@ -93,6 +103,18 @@ class CoursesTableViewController: UITableViewController {
         }    
     }
     
+    override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        cell.contentView.layer.borderColor = UIColor.init(red: 3/255, green: 121/255, blue: 0/255, alpha: 1.0).cgColor
+        cell.contentView.layer.borderWidth = 1
+        
+        // set up your background color view
+        let colorView = UIView()
+        colorView.backgroundColor = UIColor.lightGray
+        
+        // use UITableViewCell.appearance() to configure
+        // the default appearance of all UITableViewCells in your app
+        UITableViewCell.appearance().selectedBackgroundView = colorView
+    }
 
     /*
     // Override to support rearranging the table view.
@@ -187,11 +209,11 @@ class CoursesTableViewController: UITableViewController {
             os_log("Courses successfully saved", log: OSLog.default, type: .debug)
         }
         else {
-            os_log("Failed to save meals...", log: OSLog.default, type: .debug)
+            os_log("Failed to save courses...", log: OSLog.default, type: .debug)
         }
     }
     
-    private func loadCourses() -> [Course]? {
+    func loadCourses() -> [Course]? {
         return NSKeyedUnarchiver.unarchiveObject(withFile: Course.ArchiveURL.path) as? [Course]
     }
 }
