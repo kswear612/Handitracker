@@ -16,7 +16,7 @@ class BackTableVC: UITableViewController {
     
     //MARK: Functions
     override func viewDidLoad() {
-        tableArray = ["Home", "Courses", "Scores"]
+        tableArray = ["Courses", "Scores"]
         self.tableView.backgroundColor = UIColor.lightGray
     }
     
