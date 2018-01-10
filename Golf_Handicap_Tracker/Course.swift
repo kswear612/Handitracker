@@ -16,6 +16,7 @@ class Course: NSObject, NSCoding {
     var photo: UIImage?
     var courseRating: Double
     var courseSlope: Int
+    var isNineHoleCourse: Bool
     
     //MARK: Archiving Paths
     static let DocumentsDirectory = FileManager().urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -27,10 +28,11 @@ class Course: NSObject, NSCoding {
         static let photo = "photo"
         static let courseRating = "courseRating"
         static let courseSlope = "courseSlope"
+        static let isNineHoleCourse = "isNineHoleCourse"
     }
     
     //MARK: Initialization
-    init?(courseName: String, photo: UIImage?, courseRating: Double, courseSlope: Int) {
+    init?(courseName: String, photo: UIImage?, courseRating: Double, courseSlope: Int, isNineHoleCourse: Bool) {
         // The course name must not be empty
         guard !courseName.isEmpty else {
             return nil
@@ -50,6 +52,7 @@ class Course: NSObject, NSCoding {
         self.photo = photo
         self.courseRating = courseRating
         self.courseSlope = courseSlope
+        self.isNineHoleCourse = isNineHoleCourse
     }
     
     //MARK: NSCoding
@@ -58,6 +61,7 @@ class Course: NSObject, NSCoding {
         aCoder.encode(photo, forKey: PropertyKey.photo)
         aCoder.encode(courseRating, forKey: PropertyKey.courseRating)
         aCoder.encode(courseSlope, forKey: PropertyKey.courseSlope)
+        aCoder.encode(isNineHoleCourse, forKey: PropertyKey.isNineHoleCourse)
     }
     
     required convenience init?(coder aDecoder: NSCoder) {
@@ -72,8 +76,9 @@ class Course: NSObject, NSCoding {
         
         let courseRating = aDecoder.decodeDouble(forKey: PropertyKey.courseRating)
         let courseSlope = aDecoder.decodeInteger(forKey: PropertyKey.courseSlope)
+        let isNineHoleCourse = aDecoder.decodeBool(forKey: PropertyKey.isNineHoleCourse)
         
-        self.init(courseName: courseName, photo: photo, courseRating: courseRating, courseSlope: courseSlope)
+        self.init(courseName: courseName, photo: photo, courseRating: courseRating, courseSlope: courseSlope, isNineHoleCourse: isNineHoleCourse)
     }
     
     

@@ -15,6 +15,7 @@ class CourseTableViewCell: UITableViewCell {
     @IBOutlet weak var courseNameLabel: UILabel!
     @IBOutlet weak var courseRatingLabel: UILabel!
     @IBOutlet weak var courseSlopeLabel: UILabel!
+    @IBOutlet weak var handicapScore: UILabel!
     
     override func awakeFromNib() {
         super.awakeFromNib()

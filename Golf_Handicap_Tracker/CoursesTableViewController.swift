@@ -15,7 +15,8 @@ class CoursesTableViewController: UITableViewController {
     //MARK: Properties
     @IBOutlet weak var open: UIBarButtonItem!
     var courses = [Course]()
-    let handicapLabel = UILabel()
+    var scores = [Score]()
+    var courseHandicapDifferentials = [String: [Double]]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -39,6 +40,13 @@ class CoursesTableViewController: UITableViewController {
             // Load the sample data
             loadSampleCourses()
         }
+        
+        // Load any saved scores
+        if let savedScores = loadScores() {
+            scores += savedScores
+        }
+        
+        calculateHandicapDifferentials()
     }
 
     override func didReceiveMemoryWarning() {
@@ -71,14 +79,7 @@ class CoursesTableViewController: UITableViewController {
         cell.photoImageView.image = course.photo
         cell.courseRatingLabel.text = course.courseRating.description
         cell.courseSlopeLabel.text = course.courseSlope.description
-        
-        let width:CGFloat = UIScreen.main.bounds.width*0.0533
-        handicapLabel.frame = CGRect(x: 0, y: 0, width: width, height: width)
-        handicapLabel.layer.masksToBounds = true
-        handicapLabel.layer.cornerRadius = width/2
-        handicapLabel.backgroundColor = UIColor.lightGray
-        handicapLabel.text = "CIRCLE"
-        cell.contentView.addSubview(handicapLabel)
+        cell.handicapScore.text = calculateCourseHandicap(course: course);
 
         return cell
     }
@@ -188,15 +189,15 @@ class CoursesTableViewController: UITableViewController {
         let photo2 = UIImage(named: "Bethpage Black")
         let photo3 = UIImage(named: "Masters")
         
-        guard let course1 = Course(courseName: "Pebble Beach", photo: photo1, courseRating: 72.2, courseSlope: 120) else {
+        guard let course1 = Course(courseName: "Pebble Beach", photo: photo1, courseRating: 72.2, courseSlope: 120, isNineHoleCourse: false) else {
             fatalError("Unale to instantiate Pebble Beach")
         }
         
-        guard let course2 = Course(courseName: "Bethpage Black", photo: photo2, courseRating: 70.3, courseSlope: 130) else {
+        guard let course2 = Course(courseName: "Bethpage Black", photo: photo2, courseRating: 70.3, courseSlope: 130, isNineHoleCourse: true) else {
             fatalError("Unale to instantiate Bethpage Black")
         }
         
-        guard let course3 = Course(courseName: "Masters", photo: photo3, courseRating: 65.8, courseSlope: 140) else {
+        guard let course3 = Course(courseName: "Masters", photo: photo3, courseRating: 65.8, courseSlope: 140, isNineHoleCourse: false) else {
             fatalError("Unale to instantiate Masters")
         }
         
@@ -215,5 +216,170 @@ class CoursesTableViewController: UITableViewController {
     
     func loadCourses() -> [Course]? {
         return NSKeyedUnarchiver.unarchiveObject(withFile: Course.ArchiveURL.path) as? [Course]
+    }
+    
+    func loadScores() -> [Score]? {
+        return NSKeyedUnarchiver.unarchiveObject(withFile: Score.ArchiveURL.path) as? [Score]
+    }
+    
+    // Generates the
+    func calculateHandicapDifferentials() {
+        // Make sure we have both scores and courses
+        if (courses.count > 0 && scores.count > 0) {
+            // Loop through the courses and see if we have any scores
+            for course in courses {
+                var courseDifferentials = [Double]()
+                // For each score see if the score was at one of our courses
+                for score in scores {
+                    if (score.courseName == course.courseName) {
+                        let differentialFormatter = NumberFormatter()
+                        differentialFormatter.minimumFractionDigits = 0
+                        differentialFormatter.maximumFractionDigits = 1
+                        differentialFormatter.roundingMode = .halfUp
+                        
+                        // We need to calculate the differential and add it to our array
+                        let differential = (Double(score.score) - course.courseRating) * 113/Double(course.courseSlope)
+                        courseDifferentials.append(Double(differentialFormatter.string(for: differential)!)!)
+                    }
+                }
+                courseHandicapDifferentials[course.courseName] = courseDifferentials
+            }
+        }
+    }
+    
+    // First calculate the handicap index for the course then use that to calculate the handicap
+    func calculateCourseHandicap(course: Course) -> String {
+        var courseHandicap = 0
+        var handicapIndex = 0.0
+        guard let courseIndexes = courseHandicapDifferentials[course.courseName]?.sorted() else {
+            fatalError("No course indexes found")
+        }
+        
+        if courseIndexes.count < 5 {
+            return "N/A"
+        }
+            
+        handicapIndex = calculateHandicapIndex(courseIndexes: courseIndexes, isNineHoleCourse: course.isNineHoleCourse)
+        
+        let handicapFormatter = NumberFormatter()
+        handicapFormatter.minimumFractionDigits = 0
+        handicapFormatter.maximumFractionDigits = 0
+        handicapFormatter.roundingMode = .halfUp
+        
+        // Handicap Index * Slope / 113
+        courseHandicap = Int(handicapFormatter.string(for: Double(handicapIndex * Double(course.courseSlope)/113.0))!)!
+       
+        
+        return String(courseHandicap)
+    }
+    
+    // Calculates the handicap index as a double truncated to the nearest tenth
+    func calculateHandicapIndex(courseIndexes: [Double], isNineHoleCourse: Bool) -> Double {
+        var handicapIndex = 0.0
+        
+        // Formatter for the handicap index to the nearest tenth
+        let indexFormatter = NumberFormatter()
+        indexFormatter.minimumFractionDigits = 0
+        indexFormatter.maximumFractionDigits = 1
+        indexFormatter.roundingMode = .down
+        
+        if courseIndexes.count >= 5 && courseIndexes.count <= 6 {
+            // Retrieve only the lowest one
+            handicapIndex = courseIndexes[0] * 0.96
+        }
+        else if courseIndexes.count > 6 && courseIndexes.count <= 8 {
+            // Retrieve the lowest 2
+            var handicapSum = 0.0
+            for i in 0...2 {
+                handicapSum += courseIndexes[i]
+            }
+            let handicapAverage = handicapSum / 2.0
+            handicapIndex = handicapAverage * 0.96
+        }
+        else if courseIndexes.count > 8 && courseIndexes.count <= 10 {
+            // Retrieve the lowest 3
+            var handicapSum = 0.0
+            for i in 0...3 {
+                handicapSum += courseIndexes[i]
+            }
+            let handicapAverage = handicapSum / 3.0
+            handicapIndex = handicapAverage * 0.96
+        }
+        else if courseIndexes.count > 10 && courseIndexes.count <= 12 {
+            // Retrieve the lowest 4
+            var handicapSum = 0.0
+            for i in 0...4 {
+                handicapSum += courseIndexes[i]
+            }
+            let handicapAverage = handicapSum / 4.0
+            handicapIndex = handicapAverage * 0.96
+        }
+        else if courseIndexes.count > 12 && courseIndexes.count <= 14 {
+            // Retrieve the lowest 5
+            var handicapSum = 0.0
+            for i in 0...5 {
+                handicapSum += courseIndexes[i]
+            }
+            let handicapAverage = handicapSum / 5.0
+            handicapIndex = handicapAverage * 0.96
+        }
+        else if courseIndexes.count > 14 && courseIndexes.count <= 16 {
+            // Retrieve the lowest 6
+            var handicapSum = 0.0
+            for i in 0...6 {
+                handicapSum += courseIndexes[i]
+            }
+            let handicapAverage = handicapSum / 6.0
+            handicapIndex = handicapAverage * 0.96
+        }
+        else if courseIndexes.count == 17 {
+            // Retrieve the lowest 7
+            var handicapSum = 0.0
+            for i in 0...7 {
+                handicapSum += courseIndexes[i]
+            }
+            let handicapAverage = handicapSum / 7.0
+            handicapIndex = handicapAverage * 0.96
+        }
+        else if courseIndexes.count == 18 {
+            // Retrieve the lowest 8
+            var handicapSum = 0.0
+            for i in 0...8 {
+                handicapSum += courseIndexes[i]
+            }
+            let handicapAverage = handicapSum / 8.0
+            handicapIndex = handicapAverage * 0.96
+        }
+        else if courseIndexes.count == 19 {
+            // Retrieve the lowest 9
+            var handicapSum = 0.0
+            for i in 0...9 {
+                handicapSum += courseIndexes[i]
+            }
+            let handicapAverage = handicapSum / 9.0
+            handicapIndex = handicapAverage * 0.96
+        }
+        else if courseIndexes.count >= 20 {
+            // Retrieve the lowest 10
+            var handicapSum = 0.0
+            for i in 0...10 {
+                handicapSum += courseIndexes[i]
+            }
+            let handicapAverage = handicapSum / 10.0
+            handicapIndex = handicapAverage * 0.96
+        }
+        
+        // If male and the index is greater than 36.4 on 18 hole course then reset to the max
+        if (handicapIndex > 36.4 && !isNineHoleCourse) {
+            handicapIndex = 36.4
+        }
+        // else if male and the index is greater than 18.2 on 9 hole course then reset to the max
+        else if (handicapIndex > 18.2 && isNineHoleCourse) {
+            handicapIndex = 18.2
+        }
+        // else if female and the index is greater than 40.4 on 18 hole course then reset to the max
+        // ele if femal and the index is greater than 20.2 on 9 hole course then reset to the max
+        
+        return Double(indexFormatter.string(for: handicapIndex)!)!
     }
 }

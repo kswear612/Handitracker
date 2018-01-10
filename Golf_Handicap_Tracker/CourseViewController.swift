@@ -19,6 +19,7 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
     @IBOutlet weak var saveButton: UIBarButtonItem!
     @IBOutlet weak var courseRatingLabel: UILabel!
     @IBOutlet weak var courseSlopeLabel: UILabel!
+    @IBOutlet weak var nineHoleSwitch: UISwitch!
     
     
     var course: Course?
@@ -38,6 +39,7 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
             courseRatingLabel.text = String(courseRatingSlider.value)
             courseSlopeSlider.value = Float(course.courseSlope)
             courseSlopeLabel.text = String(Int(courseSlopeSlider.value))
+            nineHoleSwitch.isOn = course.isNineHoleCourse
         }
         
         // Enable the Save button only if the text field has a valid course name
@@ -105,9 +107,10 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
         numberFormatter.minimumFractionDigits = 0
         numberFormatter.maximumFractionDigits = 0
         let courseSlope = numberFormatter.string(for: courseSlopeSlider.value)!
+        let isNineHoleCourse = nineHoleSwitch.isOn
         
         // Set the meal to be passed to CourseTableViewController after the unwind segue
-        course = Course(courseName: courseName, photo: photo, courseRating: Double(courseRating)!, courseSlope: Int(courseSlope)!)
+        course = Course(courseName: courseName, photo: photo, courseRating: Double(courseRating)!, courseSlope: Int(courseSlope)!, isNineHoleCourse: isNineHoleCourse)
     }
     
     //MARK: Actions
