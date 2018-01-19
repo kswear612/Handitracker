@@ -16,8 +16,15 @@ class BackTableVC: UITableViewController {
     
     //MARK: Functions
     override func viewDidLoad() {
-        tableArray = ["Courses", "Scores"]
+        tableArray = ["Courses", "Scores", "About Me"]
         self.tableView.backgroundColor = UIColor.lightGray
+        
+        if let savedAboutMe = loadAboutMe() {
+            self.title = "Welcome " + savedAboutMe.firstName + "!"
+        }
+        else {
+            self.title = "Welcome!"
+        }
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -33,6 +40,11 @@ class BackTableVC: UITableViewController {
         cell.backgroundColor = UIColor.lightGray
         
         return cell
+    }
+    
+    //MARK: Private Methods
+    func loadAboutMe() -> AboutMe? {
+        return NSKeyedUnarchiver.unarchiveObject(withFile: AboutMe.ArchiveURL.path) as? AboutMe
     }
     
 }

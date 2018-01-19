@@ -10,11 +10,13 @@ import UIKit
 import os.log
 import CoreGraphics
 
-class CoursesTableViewController: UITableViewController {
+class CoursesTableViewController: UITableViewController,  UISearchResultsUpdating  {
 
     //MARK: Properties
     @IBOutlet weak var open: UIBarButtonItem!
     var courses = [Course]()
+    var filteredCourses = [Course]()
+    let searchController = UISearchController(searchResultsController: nil)
     var scores = [Score]()
     var courseHandicapDifferentials = [String: [Double]]()
     
@@ -31,14 +33,16 @@ class CoursesTableViewController: UITableViewController {
         // Recognize right swipe gesture
         self.view.addGestureRecognizer(self.revealViewController().panGestureRecognizer())
         
+        // Setup search controller
+        searchController.searchResultsUpdater = self
+        searchController.dimsBackgroundDuringPresentation = false
+        searchController.searchBar.placeholder = "Search by course name"
+        definesPresentationContext = true
+        tableView.tableHeaderView = searchController.searchBar
+        
         // Load any saved courses, otherwise load sample data
         if let savedCourses = loadCourses() {
             courses += savedCourses
-            //loadSampleCourses()
-        }
-        else {
-            // Load the sample data
-            loadSampleCourses()
         }
         
         // Load any saved scores
@@ -46,12 +50,9 @@ class CoursesTableViewController: UITableViewController {
             scores += savedScores
         }
         
+        filteredCourses = courses
+        
         calculateHandicapDifferentials()
-    }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
     }
 
     // MARK: - Table view data source
@@ -62,7 +63,7 @@ class CoursesTableViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // The number of rows that will be shown in the table
-        return courses.count
+        return filteredCourses.count
     }
 
     
@@ -73,7 +74,7 @@ class CoursesTableViewController: UITableViewController {
         }
 
         // Fetches the appropriate course for the data source layout
-        let course = courses[indexPath.row]
+        let course = filteredCourses[indexPath.row]
         
         cell.courseNameLabel.text = course.courseName
         cell.photoImageView.image = course.photo
@@ -84,6 +85,15 @@ class CoursesTableViewController: UITableViewController {
         return cell
     }
 
+    func updateSearchResults(for searchController: UISearchController) {
+        if searchController.searchBar.text! == "" {
+            filteredCourses = courses
+        }
+        else {
+            filteredCourses = courses.filter({$0.courseName.lowercased().contains(searchController.searchBar.text!.lowercased())})
+        }
+        self.tableView.reloadData()
+    }
     
     // Override to support conditional editing of the table view.
     override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
@@ -97,11 +107,12 @@ class CoursesTableViewController: UITableViewController {
         if editingStyle == .delete {
             // Delete the row from the data source
             courses.remove(at: indexPath.row)
+            filteredCourses.remove(at: indexPath.row)
             saveCourses()
             tableView.deleteRows(at: [indexPath], with: .fade)
         } else if editingStyle == .insert {
             // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-        }    
+        }
     }
     
     override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
@@ -116,32 +127,47 @@ class CoursesTableViewController: UITableViewController {
         // the default appearance of all UITableViewCells in your app
         UITableViewCell.appearance().selectedBackgroundView = colorView
     }
-
-    /*
-    // Override to support rearranging the table view.
-    override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
-
-    }
-    */
-
-    /*
-    // Override to support conditional rearranging of the table view.
-    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the item to be re-orderable.
-        return true
-    }
-    */
-
     
+    override func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath) -> [UITableViewRowAction]? {
+        let addScores = UITableViewRowAction(style: .normal, title: "Add Scores") { action, indexPath in
+            self.performSegue(withIdentifier: "AddScore", sender: tableView.cellForRow(at: indexPath))
+        }
+        
+        let delete = UITableViewRowAction(style: .destructive, title: "Delete") { action, indexPath in
+            // Delete the row from the data source
+            self.courses.remove(at: indexPath.row)
+            self.filteredCourses.remove(at: indexPath.row)
+            self.saveCourses()
+            tableView.deleteRows(at: [indexPath], with: .fade)
+        }
+        
+        addScores.backgroundColor = UIColor.init(red: 3/255, green: 121/255, blue: 0/255, alpha: 1.0)
+        
+        return [delete, addScores]
+    }
+
     // MARK: - Navigation
 
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         super.prepare(for: segue, sender: sender)
         switch (segue.identifier ?? "") {
-        case "AddItem":
+        case "AddCourse":
             os_log("Adding a new course", log: OSLog.default, type: .debug)
-        case "ShowDetail":
+        case "AddScore":
+            guard let scoresViewController = segue.destination as? ScoresViewController else {
+                fatalError("Unexpected destination: \(segue.destination)")
+            }
+            guard let cellViewController = sender as? CourseTableViewCell else {
+                fatalError("Unexpected sender: \(String(describing: sender))")
+            }
+            guard let indexPath = tableView.indexPath(for: cellViewController) else {
+                fatalError("The selected cell is not being displayed by the table")
+            }
+            let selectedCourse = courses[indexPath.row]
+            scoresViewController.preselectedCourse = selectedCourse.courseName
+            os_log("Adding a new score", log: OSLog.default, type: .debug)
+        case "CourseDetail":
             guard let courseDetailViewController = segue.destination as? CourseViewController else {
                 fatalError("Unexpected destination: \(segue.destination)")
             }
@@ -160,17 +186,19 @@ class CoursesTableViewController: UITableViewController {
     }
     
     //MARK: Actions
-    @IBAction func unwindToCourseList(sender: UIStoryboardSegue) {
+    @IBAction func unwindFromCourseSave(sender: UIStoryboardSegue) {
         if let sourceViewController = sender.source as? CourseViewController, let course = sourceViewController.course {
             if let selectedIndexPath = tableView.indexPathForSelectedRow {
                 // Update an existing course
                 courses[selectedIndexPath.row] = course
+                filteredCourses[selectedIndexPath.row] = course
                 tableView.reloadRows(at: [selectedIndexPath], with: .none)
             }
             else {
                 // Add a new course
                 let newIndexPath = IndexPath(row: courses.count, section: 0)
                 courses.append(course)
+                filteredCourses.append(course)
                 tableView.insertRows(at: [newIndexPath], with: .automatic)
             }
             
@@ -179,31 +207,27 @@ class CoursesTableViewController: UITableViewController {
         }
     }
     
-    @IBAction func unwindToCourseListFromCancel(sender: UIStoryboardSegue) {
+    @IBAction func unwindFromCourseCancel(sender: UIStoryboardSegue) {
         dismiss(animated: true, completion: nil)
     }
+    
+    @IBAction func unwindFromScoreSave(sender: UIStoryboardSegue) {
+        if let sourceViewController = sender.source as? ScoresViewController, let score = sourceViewController.score {
+            // Add a new course
+            scores.append(score)
+            calculateHandicapDifferentials()
+            self.tableView.reloadData()
+            
+            // Save the scores
+            saveScores()
+        }
+    }
 
-    //MARK: Private Methods
-    private func loadSampleCourses() {
-        let photo1 = UIImage(named: "Pebble Beach")
-        let photo2 = UIImage(named: "Bethpage Black")
-        let photo3 = UIImage(named: "Masters")
-        
-        guard let course1 = Course(courseName: "Pebble Beach", photo: photo1, courseRating: 72.2, courseSlope: 120, isNineHoleCourse: false) else {
-            fatalError("Unale to instantiate Pebble Beach")
-        }
-        
-        guard let course2 = Course(courseName: "Bethpage Black", photo: photo2, courseRating: 70.3, courseSlope: 130, isNineHoleCourse: true) else {
-            fatalError("Unale to instantiate Bethpage Black")
-        }
-        
-        guard let course3 = Course(courseName: "Masters", photo: photo3, courseRating: 65.8, courseSlope: 140, isNineHoleCourse: false) else {
-            fatalError("Unale to instantiate Masters")
-        }
-        
-        courses += [course1, course2, course3]
+    @IBAction func unwindFromScoreCancel(sender: UIStoryboardSegue) {
+        dismiss(animated: true, completion:nil)
     }
     
+    //MARK: Private Methods
     private func saveCourses() {
         let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(courses, toFile: Course.ArchiveURL.path)
         if isSuccessfulSave {
@@ -211,6 +235,16 @@ class CoursesTableViewController: UITableViewController {
         }
         else {
             os_log("Failed to save courses...", log: OSLog.default, type: .debug)
+        }
+    }
+    
+    private func saveScores() {
+        let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(scores, toFile: Score.ArchiveURL.path)
+        if isSuccessfulSave {
+            os_log("Scores successfully saved", log: OSLog.default, type: .debug)
+        }
+        else {
+            os_log("Failed to save scores...", log: OSLog.default, type: .debug)
         }
     }
     
@@ -252,7 +286,8 @@ class CoursesTableViewController: UITableViewController {
         var courseHandicap = 0
         var handicapIndex = 0.0
         guard let courseIndexes = courseHandicapDifferentials[course.courseName]?.sorted() else {
-            fatalError("No course indexes found")
+            os_log("No course indexes found", log: OSLog.default, type: .debug)
+            return "N/A"
         }
         
         if courseIndexes.count < 5 {
@@ -369,16 +404,31 @@ class CoursesTableViewController: UITableViewController {
             handicapIndex = handicapAverage * 0.96
         }
         
+        var gender = "Male"
+        let aboutMe = NSKeyedUnarchiver.unarchiveObject(withFile: AboutMe.ArchiveURL.path) as? AboutMe
+        if aboutMe != nil && aboutMe?.gender != nil && !(aboutMe?.gender.isEmpty)! {
+            gender = (aboutMe?.gender)!
+        }
+        else {
+            os_log("No about me is filled out. Using male as the default gender", log: OSLog.default, type: .debug)
+        }
+        
         // If male and the index is greater than 36.4 on 18 hole course then reset to the max
-        if (handicapIndex > 36.4 && !isNineHoleCourse) {
+        if (gender == "Male" && handicapIndex > 36.4 && !isNineHoleCourse) {
             handicapIndex = 36.4
         }
         // else if male and the index is greater than 18.2 on 9 hole course then reset to the max
-        else if (handicapIndex > 18.2 && isNineHoleCourse) {
+        else if (gender == "Male" && handicapIndex > 18.2 && isNineHoleCourse) {
             handicapIndex = 18.2
         }
         // else if female and the index is greater than 40.4 on 18 hole course then reset to the max
+        else if (gender == "Female" && handicapIndex > 40.4 && !isNineHoleCourse) {
+            handicapIndex = 40.4
+        }
         // ele if femal and the index is greater than 20.2 on 9 hole course then reset to the max
+        else if (gender == "Female" && handicapIndex > 20.2 && isNineHoleCourse) {
+            handicapIndex = 20.2
+        }
         
         return Double(indexFormatter.string(for: handicapIndex)!)!
     }

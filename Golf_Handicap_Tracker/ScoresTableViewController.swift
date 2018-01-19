@@ -9,11 +9,13 @@
 import UIKit
 import os.log
 
-class ScoresTableViewController: UITableViewController {
+class ScoresTableViewController: UITableViewController, UISearchResultsUpdating {
 
     //MARK: Properties
     @IBOutlet weak var open: UIBarButtonItem!
     var scores = [Score]()
+    var filteredScores = [Score]()
+    let searchController = UISearchController(searchResultsController: nil)
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,19 +27,19 @@ class ScoresTableViewController: UITableViewController {
         // Recognize right swipe gesture
         self.view.addGestureRecognizer(self.revealViewController().panGestureRecognizer())
         
-        // Load any saved courses, otherwise load sample data
+        // Setup search controller
+        searchController.searchResultsUpdater = self
+        searchController.dimsBackgroundDuringPresentation = false
+        searchController.searchBar.placeholder = "Search by course name"
+        definesPresentationContext = true
+        tableView.tableHeaderView = searchController.searchBar
+        
+        // Load any saved scores, otherwise load sample data
         if let savedScores = loadScores() {
             scores += savedScores
         }
-        else {
-            // Load the sample data
-            loadSampleScores()
-        }
-    }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+        
+        filteredScores = scores
     }
 
     // MARK: - Table view data source
@@ -48,7 +50,7 @@ class ScoresTableViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // The number of rows that will be shown in the table
-        return scores.count
+        return filteredScores.count
     }
 
     
@@ -59,7 +61,7 @@ class ScoresTableViewController: UITableViewController {
         }
 
         // Fetches the appropriate course for the data source layout
-        let score = scores[indexPath.row]
+        let score = filteredScores[indexPath.row]
         
         cell.scoreLabel.text = String(score.score)
         cell.courseNameLabel.text = score.courseName
@@ -72,6 +74,16 @@ class ScoresTableViewController: UITableViewController {
         cell.dateLabel.text = dateFormatter.string(from: score.date)
 
         return cell
+    }
+    
+    func updateSearchResults(for searchController: UISearchController) {
+        if searchController.searchBar.text! == "" {
+            filteredScores = scores
+        }
+        else {
+            filteredScores = scores.filter({$0.courseName.lowercased().contains(searchController.searchBar.text!.lowercased())})
+        }
+        self.tableView.reloadData()
     }
     
     override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
@@ -99,28 +111,13 @@ class ScoresTableViewController: UITableViewController {
         if editingStyle == .delete {
             // Delete the row from the data source
             scores.remove(at: indexPath.row)
+            filteredScores.remove(at: indexPath.row)
             saveScores()
             tableView.deleteRows(at: [indexPath], with: .fade)
         } else if editingStyle == .insert {
             // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
         }    
     }
-
-    /*
-    // Override to support rearranging the table view.
-    override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
-
-    }
-    */
-
-    /*
-    // Override to support conditional rearranging of the table view.
-    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the item to be re-orderable.
-        return true
-    }
-    */
-
     
     // MARK: - Navigation
 
@@ -128,9 +125,9 @@ class ScoresTableViewController: UITableViewController {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         super.prepare(for: segue, sender: sender)
         switch (segue.identifier ?? "") {
-        case "AddItem":
+        case "AddScore":
             os_log("Adding a new score", log: OSLog.default, type: .debug)
-        case "ShowDetail":
+        case "ScoreDetail":
             guard let scoreDetailViewController = segue.destination as? ScoresViewController else {
                 fatalError("Unexpected destination: \(segue.destination)")
             }
@@ -149,32 +146,34 @@ class ScoresTableViewController: UITableViewController {
     }
     
     //MARK: Actions
-    @IBAction func unwindToScoreList(sender: UIStoryboardSegue) {
+    @IBAction func unwindFromScoreSave(sender: UIStoryboardSegue) {
         if let sourceViewController = sender.source as? ScoresViewController, let score = sourceViewController.score {
             if let selectedIndexPath = tableView.indexPathForSelectedRow {
-                // Update an existing course
+                // Update an existing score
                 scores[selectedIndexPath.row] = score
+                filteredScores[selectedIndexPath.row] = score
                 tableView.reloadRows(at: [selectedIndexPath], with: .none)
             }
             else {
-                // Add a new course
+                // Add a new score
                 let newIndexPath = IndexPath(row: scores.count, section: 0)
                 scores.append(score)
+                filteredScores.append(score)
                 tableView.insertRows(at: [newIndexPath], with: .automatic)
             }
             
-            // Save the courses
+            // Save the scores
             saveScores()
         }
     }
     
-    @IBAction func unwindToScoreListFromCancel(sender: UIStoryboardSegue) {
+    @IBAction func unwindFromScoreCancel(sender: UIStoryboardSegue) {
         dismiss(animated: true, completion: nil)
     }
     
     //MARK: Private Methods
     private func loadSampleScores() {
-        guard let score1 = Score(score: 90, courseName: "Pebble Beach", date: Date()) else {
+        guard let score1 = Score(score: 90, courseName: "Pebble Beach", date: Date(), scorecardPhoto: nil) else {
             fatalError("Unable to instantiate Pebble Beach score")
         }
         
@@ -182,14 +181,14 @@ class ScoresTableViewController: UITableViewController {
         dateComponents.year = 2017
         dateComponents.month = 11
         dateComponents.day = 10
-        guard let score2 = Score(score: 95, courseName: "Bethpage Black", date: Calendar.current.date(from: dateComponents)!) else {
+        guard let score2 = Score(score: 95, courseName: "Bethpage Black", date: Calendar.current.date(from: dateComponents)!, scorecardPhoto: nil) else {
             fatalError("Unable to instantiate Bethpage Black score")
         }
         
         dateComponents.year = 2017
         dateComponents.month = 3
         dateComponents.day = 22
-        guard let score3 = Score(score: 72, courseName: "Masters", date: Calendar.current.date(from: dateComponents)!) else {
+        guard let score3 = Score(score: 72, courseName: "Masters", date: Calendar.current.date(from: dateComponents)!, scorecardPhoto: nil) else {
             fatalError("Unable to instantiate Masters score")
         }
         

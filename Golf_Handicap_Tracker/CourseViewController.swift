@@ -21,14 +21,18 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
     @IBOutlet weak var courseSlopeLabel: UILabel!
     @IBOutlet weak var nineHoleSwitch: UISwitch!
     
-    
     var course: Course?
+    var imagePicker = UIImagePickerController()
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
         // Handle the text field's user input through delegate callbacks
         courseNameTextField.delegate = self
+        imagePicker.delegate = self
+        
+        // Register the view controller as an observer of the text fields
+        NotificationCenter.default.addObserver(self, selector: #selector(textDidChange(_:)), name: Notification.Name.UITextFieldTextDidChange, object: nil)
         
         // Set up views if editing an existing course
         if let course = course {
@@ -43,7 +47,8 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
         }
         
         // Enable the Save button only if the text field has a valid course name
-        //updateSaveButtonState()
+        let text = courseNameTextField.text ?? ""
+        saveButton.isEnabled = !text.isEmpty
     }
     
     //MARK: UITextFieldDelegate
@@ -56,11 +61,6 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
     func textFieldDidBeginEditing(_ textField: UITextField) {
         // Disable the Save button while editing
         //saveButton.isEnabled = false
-    }
-    
-    func textFieldDidEndEditing(_ textField: UITextField) {
-        updateSaveButtonState()
-        navigationItem.title = textField.text
     }
     
     //MARK: UIImagePickerControllerDelegate
@@ -115,16 +115,58 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
     
     //MARK: Actions
     @IBAction func selectCourseImage(_ sender: Any) {
-        // Hide the keyboard
-        courseNameTextField.resignFirstResponder()
+        let alert = UIAlertController(title: "Choose Image", message: nil, preferredStyle: .actionSheet)
+        alert.addAction(UIAlertAction(title: "Camera", style: .default, handler: { _ in
+            if(UIImagePickerController .isSourceTypeAvailable(UIImagePickerControllerSourceType.camera))
+            {
+                self.imagePicker.sourceType = UIImagePickerControllerSourceType.camera
+                self.imagePicker.allowsEditing = true
+                self.present(self.imagePicker, animated: true, completion: nil)
+            }
+            else
+            {
+                self.noCamera()
+            }
+        }))
         
-        // UIImagePickerController is a view controller that lets a user pick media from their photo library
-        let imagePickerController = UIImagePickerController()
+        alert.addAction(UIAlertAction(title: "Photo Library", style: .default, handler: { _ in
+            // Opens the gallery
+            self.imagePicker.sourceType = UIImagePickerControllerSourceType.savedPhotosAlbum
+            self.imagePicker.allowsEditing = true
+            self.present(self.imagePicker, animated: true, completion: nil)
+        }))
         
-        // Make sure ViewController is notified when the user picks an image
-        imagePickerController.delegate = self
+        alert.addAction(UIAlertAction.init(title: "Cancel", style: .cancel, handler: nil))
         
-        present(imagePickerController, animated: true, completion: nil)
+        /*If you want work actionsheet on ipad
+         then you have to use popoverPresentationController to present the actionsheet,
+         otherwise app will crash on iPad */
+        switch UIDevice.current.userInterfaceIdiom {
+        case .pad:
+            alert.popoverPresentationController?.sourceView = sender as? UIView
+            alert.popoverPresentationController?.sourceRect = (sender as AnyObject).bounds
+            alert.popoverPresentationController?.permittedArrowDirections = .up
+        default:
+            break
+        }
+        
+        self.present(alert, animated: true, completion: nil)
+    }
+    
+    func noCamera(){
+        let alertVC = UIAlertController(
+            title: "No Camera",
+            message: "Sorry, this device has no camera",
+            preferredStyle: .alert)
+        let okAction = UIAlertAction(
+            title: "OK",
+            style:.default,
+            handler: nil)
+        alertVC.addAction(okAction)
+        present(
+            alertVC,
+            animated: true,
+            completion: nil)
     }
     
     @IBAction func courseRatingSlider(_ sender: UISlider) {
@@ -140,9 +182,13 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
     }
     
     //MARK: Private Methods
-    private func updateSaveButtonState() {
-        // Disable the Save button if the text field is empty
+    @objc private func textDidChange(_ notification: Notification) {
+        // Update save button
         let text = courseNameTextField.text ?? ""
         saveButton.isEnabled = !text.isEmpty
+        
+        if saveButton.isEnabled {
+            navigationItem.title = text
+        }
     }
 }
