@@ -17,6 +17,7 @@ class Course: NSObject, NSCoding {
     var courseRating: Double
     var courseSlope: Int
     var isNineHoleCourse: Bool
+    var courseIdentifier: String
     
     //MARK: Archiving Paths
     static let DocumentsDirectory = FileManager().urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -29,10 +30,11 @@ class Course: NSObject, NSCoding {
         static let courseRating = "courseRating"
         static let courseSlope = "courseSlope"
         static let isNineHoleCourse = "isNineHoleCourse"
+        static let courseIdentifier = "courseIdentifier"
     }
     
     //MARK: Initialization
-    init?(courseName: String, photo: UIImage?, courseRating: Double, courseSlope: Int, isNineHoleCourse: Bool) {
+    init?(courseName: String, photo: UIImage?, courseRating: Double, courseSlope: Int, isNineHoleCourse: Bool, courseIdentifier: String) {
         // The course name must not be empty
         guard !courseName.isEmpty else {
             return nil
@@ -48,11 +50,17 @@ class Course: NSObject, NSCoding {
             return nil
         }
         
+        // The course identifier must not be empty
+        guard !courseIdentifier.isEmpty else {
+            return nil
+        }
+        
         self.courseName = courseName
         self.photo = photo
         self.courseRating = courseRating
         self.courseSlope = courseSlope
         self.isNineHoleCourse = isNineHoleCourse
+        self.courseIdentifier = courseIdentifier
     }
     
     //MARK: NSCoding
@@ -62,6 +70,7 @@ class Course: NSObject, NSCoding {
         aCoder.encode(courseRating, forKey: PropertyKey.courseRating)
         aCoder.encode(courseSlope, forKey: PropertyKey.courseSlope)
         aCoder.encode(isNineHoleCourse, forKey: PropertyKey.isNineHoleCourse)
+        aCoder.encode(courseIdentifier, forKey: PropertyKey.courseIdentifier)
     }
     
     required convenience init?(coder aDecoder: NSCoder) {
@@ -78,7 +87,13 @@ class Course: NSObject, NSCoding {
         let courseSlope = aDecoder.decodeInteger(forKey: PropertyKey.courseSlope)
         let isNineHoleCourse = aDecoder.decodeBool(forKey: PropertyKey.isNineHoleCourse)
         
-        self.init(courseName: courseName, photo: photo, courseRating: courseRating, courseSlope: courseSlope, isNineHoleCourse: isNineHoleCourse)
+        // The courseIdentifier is required. If we cannot decode a courseIdentifier string, the initializer should fail
+        guard let courseIdentifier = aDecoder.decodeObject(forKey: PropertyKey.courseIdentifier) as? String else {
+            os_log("Unable to decode the course identifier for a Course object", log: OSLog.default, type: .debug)
+            return nil
+        }
+        
+        self.init(courseName: courseName, photo: photo, courseRating: courseRating, courseSlope: courseSlope, isNineHoleCourse: isNineHoleCourse, courseIdentifier: courseIdentifier)
     }
     
     

@@ -35,7 +35,7 @@ class AboutMeViewController: UIViewController, UITextFieldDelegate, UIPickerView
         open.action = #selector(SWRevealViewController.revealToggle(_:))
         
         // Recognize right swipe gesture
-        self.view.addGestureRecognizer(self.revealViewController().panGestureRecognizer())
+        //self.view.addGestureRecognizer(self.revealViewController().panGestureRecognizer())
         
         // Configure Save Button
         saveButton.isEnabled = false

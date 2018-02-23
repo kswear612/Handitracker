@@ -10,22 +10,25 @@ import UIKit
 import os.log
 
 class ScoresTableViewController: UITableViewController, UISearchResultsUpdating {
-
+    
     //MARK: Properties
     @IBOutlet weak var open: UIBarButtonItem!
     var scores = [Score]()
     var filteredScores = [Score]()
     let searchController = UISearchController(searchResultsController: nil)
+    var searchString = ""
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
+        //self.clearDiskCache()
+        
         // Makes the hamburger menu reveal
         open.target = self.revealViewController()
         open.action = #selector(SWRevealViewController.revealToggle(_:))
         
         // Recognize right swipe gesture
-        self.view.addGestureRecognizer(self.revealViewController().panGestureRecognizer())
+        //self.view.addGestureRecognizer(self.revealViewController().panGestureRecognizer())
         
         // Setup search controller
         searchController.searchResultsUpdater = self
@@ -34,32 +37,37 @@ class ScoresTableViewController: UITableViewController, UISearchResultsUpdating 
         definesPresentationContext = true
         tableView.tableHeaderView = searchController.searchBar
         
-        // Load any saved scores, otherwise load sample data
+        // Load any saved scores
         if let savedScores = loadScores() {
             scores += savedScores
         }
         
         filteredScores = scores
+        
+        if (!searchString.isEmpty) {
+            searchController.searchBar.text = searchString
+            updateSearchResults(for: searchController)
+        }
     }
-
+    
     // MARK: - Table view data source
-
+    
     override func numberOfSections(in tableView: UITableView) -> Int {
         return 1
     }
-
+    
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // The number of rows that will be shown in the table
         return filteredScores.count
     }
-
+    
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cellIdentifier = "ScoresTableViewCell"
         guard let cell = tableView.dequeueReusableCell(withIdentifier: cellIdentifier, for: indexPath) as? ScoresTableViewCell else {
             fatalError("The dequeued cell is not an instance of ScoreTableViewCell")
         }
-
+        
         // Fetches the appropriate course for the data source layout
         let score = filteredScores[indexPath.row]
         
@@ -72,7 +80,7 @@ class ScoresTableViewController: UITableViewController, UISearchResultsUpdating 
         dateFormatter.timeStyle = .none
         
         cell.dateLabel.text = dateFormatter.string(from: score.date)
-
+        
         return cell
     }
     
@@ -89,7 +97,7 @@ class ScoresTableViewController: UITableViewController, UISearchResultsUpdating 
     override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         cell.contentView.layer.borderColor = UIColor.init(red: 3/255, green: 121/255, blue: 0/255, alpha: 1.0).cgColor
         cell.contentView.layer.borderWidth = 1
-       
+        
         // set up your background color view
         let colorView = UIView()
         colorView.backgroundColor = UIColor.lightGray
@@ -98,14 +106,14 @@ class ScoresTableViewController: UITableViewController, UISearchResultsUpdating 
         // the default appearance of all UITableViewCells in your app
         UITableViewCell.appearance().selectedBackgroundView = colorView
     }
-
+    
     
     // Override to support conditional editing of the table view.
     override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
         // Return false if you do not want the specified item to be editable.
         return true
     }
-
+    
     // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
@@ -116,17 +124,59 @@ class ScoresTableViewController: UITableViewController, UISearchResultsUpdating 
             tableView.deleteRows(at: [indexPath], with: .fade)
         } else if editingStyle == .insert {
             // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-        }    
+        }
+    }
+    
+    override func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath) -> [UITableViewRowAction]? {
+        let addScoreDetail = UITableViewRowAction(style: .normal, title: "View Score Detail") { action, indexPath in
+            self.performSegue(withIdentifier: "ViewScoreDetail", sender: tableView.cellForRow(at: indexPath))
+        }
+        
+        let delete = UITableViewRowAction(style: .destructive, title: "Delete") { action, indexPath in
+            // Delete the row from the data source
+            self.scores.remove(at: indexPath.row)
+            self.filteredScores.remove(at: indexPath.row)
+            self.saveScores()
+            tableView.deleteRows(at: [indexPath], with: .fade)
+        }
+        
+        addScoreDetail.backgroundColor = UIColor.init(red: 3/255, green: 121/255, blue: 0/255, alpha: 1.0)
+        
+        return [delete, addScoreDetail]
     }
     
     // MARK: - Navigation
-
+    
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         super.prepare(for: segue, sender: sender)
         switch (segue.identifier ?? "") {
         case "AddScore":
             os_log("Adding a new score", log: OSLog.default, type: .debug)
+        case "ViewScoreDetail":
+            guard let scoreDetailViewController = segue.destination as? ScoreDetailViewController else {
+                fatalError("Unexpected destination: \(segue.destination)")
+            }
+            guard let cellViewController = sender as? ScoresTableViewCell else {
+                fatalError("Unexpected sender: \(String(describing: sender))")
+            }
+            guard let indexPath = tableView.indexPath(for: cellViewController) else {
+                fatalError("The selected cell is not being displayed by the table")
+            }
+            let scoreIdentifier = filteredScores[indexPath.row].scoreIdentifier
+            let courseIdentifier = filteredScores[indexPath.row].courseIdentifier
+            scoreDetailViewController.scoreIdentifier = scoreIdentifier
+            scoreDetailViewController.courseIdentifier = courseIdentifier
+            if scores[indexPath.row].holes.isEmpty {
+                var holes = [Hole]()
+                for i in 1...18 {
+                    holes.append(Hole(holeNumber: i, holeStrokes: 0)!)
+                }
+                //scores[indexPath.row].scoreDetail = ScoreDetail(holes: holes, roundTotal: 0, courseIdentifier: courseIdentifier, scoreIdentifier: scoreIdentifier)!
+                scores[indexPath.row].holes = holes
+            }
+            scoreDetailViewController.score = filteredScores[indexPath.row]
+            os_log("Adding score detail", log: OSLog.default, type: .debug)
         case "ScoreDetail":
             guard let scoreDetailViewController = segue.destination as? ScoresViewController else {
                 fatalError("Unexpected destination: \(segue.destination)")
@@ -138,7 +188,7 @@ class ScoresTableViewController: UITableViewController, UISearchResultsUpdating 
                 fatalError("The selected cell is not being displayed by the table")
             }
             
-            let selectedScore = scores[indexPath.row]
+            let selectedScore = filteredScores[indexPath.row]
             scoreDetailViewController.score = selectedScore
         default:
             fatalError("Unexpected Segue Identifier; \(String(describing: segue.identifier))")
@@ -165,6 +215,24 @@ class ScoresTableViewController: UITableViewController, UISearchResultsUpdating 
             // Save the scores
             saveScores()
         }
+        // If we are saving the score detail for a score we need to handle it here
+        else if let sourceViewController = sender.source as? ScoreDetailViewController, let score = sourceViewController.score {
+            // Need to loop through the filtered scores first because it is possible that array is smaller because the courses are filtered
+            for i in 0..<filteredScores.count {
+                for j in 0..<scores.count {
+                    if filteredScores[i].scoreIdentifier == score.scoreIdentifier  && filteredScores[i].scoreIdentifier == scores[j].scoreIdentifier {
+                        // Add the detail to the existing score
+                        scores[j] = score
+                        filteredScores[i] = score
+                        let selectedIndexPath = IndexPath(row: i, section: 0)
+                        tableView.reloadRows(at: [selectedIndexPath], with: .none)
+                        break;
+                    }
+                }
+            }
+            
+            saveScores()
+        }
     }
     
     @IBAction func unwindFromScoreCancel(sender: UIStoryboardSegue) {
@@ -172,29 +240,6 @@ class ScoresTableViewController: UITableViewController, UISearchResultsUpdating 
     }
     
     //MARK: Private Methods
-    private func loadSampleScores() {
-        guard let score1 = Score(score: 90, courseName: "Pebble Beach", date: Date(), scorecardPhoto: nil) else {
-            fatalError("Unable to instantiate Pebble Beach score")
-        }
-        
-        var dateComponents = DateComponents()
-        dateComponents.year = 2017
-        dateComponents.month = 11
-        dateComponents.day = 10
-        guard let score2 = Score(score: 95, courseName: "Bethpage Black", date: Calendar.current.date(from: dateComponents)!, scorecardPhoto: nil) else {
-            fatalError("Unable to instantiate Bethpage Black score")
-        }
-        
-        dateComponents.year = 2017
-        dateComponents.month = 3
-        dateComponents.day = 22
-        guard let score3 = Score(score: 72, courseName: "Masters", date: Calendar.current.date(from: dateComponents)!, scorecardPhoto: nil) else {
-            fatalError("Unable to instantiate Masters score")
-        }
-        
-        scores += [score1, score2, score3]
-    }
-    
     private func saveScores() {
         let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(scores, toFile: Score.ArchiveURL.path)
         if isSuccessfulSave {
@@ -204,8 +249,19 @@ class ScoresTableViewController: UITableViewController, UISearchResultsUpdating 
             os_log("Failed to save scores...", log: OSLog.default, type: .debug)
         }
     }
-
+    
     private func loadScores() -> [Score]? {
         return NSKeyedUnarchiver.unarchiveObject(withFile: Score.ArchiveURL.path) as? [Score]
     }
+    
+    func clearDiskCache() {
+        let fileManager = FileManager.default
+        let myDocuments = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let diskCacheStorageBaseUrl = myDocuments.appendingPathComponent("scores")
+        guard let filePaths = try? fileManager.contentsOfDirectory(at: diskCacheStorageBaseUrl, includingPropertiesForKeys: nil, options: []) else { return }
+        for filePath in filePaths {
+            try? fileManager.removeItem(at: filePath)
+        }
+    }
 }
+

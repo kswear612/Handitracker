@@ -22,26 +22,40 @@ class ScoresViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
     let datePicker = UIDatePicker()
     var coursePicker = UIPickerView()
     var preselectedCourse = "";
+    var preselectedCourseIdentifier = "";
     var courses = [Course]()
     var score: Score?
+    var scoreIdentifier = ""
+    var courseIdentifier = ""
     var imagePicker = UIImagePickerController()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // Create the date picker
         createDatePicker()
+        
+        // Register delegates so input can be recognized
         courseNameTextField.delegate = self
         dateTextField.delegate = self
         imagePicker.delegate = self
         
+        // Load in saved courses that can be used in the course picker
         if let savedCourses = loadCourses() {
             courses += savedCourses
         }
         
+        // If adding a score from a course, populate the course name with the course that was selected
         if (!preselectedCourse.isEmpty) {
             courseNameTextField.text = preselectedCourse
         }
         
+        // If adding a score from a course, populate the identifier with the course that was selected
+        if (!preselectedCourseIdentifier.isEmpty) {
+            courseIdentifier = preselectedCourseIdentifier
+        }
+        
+        // Populate the score if we have an existing score
         if let score = score {
             // format date
             let dateFormatter = DateFormatter()
@@ -52,19 +66,23 @@ class ScoresViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
             scoreLabel.text = String(score.score)
             scoreSlider.value = Float(score.score)
             dateTextField.text = dateFormatter.string(from: score.date)
+            datePicker.date = score.date
             photoImageView.image = score.scorecardPhoto
+            scoreIdentifier = score.scoreIdentifier
+            courseIdentifier = score.courseIdentifier
         }
         else {
             // load default values for score slider
             scoreLabel.text = "72"
+            scoreIdentifier = UUID().uuidString
         }
         
-        // Configure Save Button
+        // Configure Save Button to display at the correct time
         let text1 = courseNameTextField.text ?? ""
         let text2 = dateTextField.text ?? ""
         saveButton.isEnabled = !text1.isEmpty && !text2.isEmpty
     }
-
+    
     // MARK: - Navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         // Configure the destination view controller only when the save button is pressed
@@ -77,9 +95,13 @@ class ScoresViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
         let scoreValue = Int(scoreSlider.value)
         let date = datePicker.date
         let photo = photoImageView.image
+        var holes = [Hole]()
+        for i in 1...18 {
+            holes.append(Hole(holeNumber: i, holeStrokes: 0)!)
+        }
         
         // Set the score to be passed to the ScoreTableViewController after the unwind segue
-        score = Score(score: scoreValue, courseName: courseName, date: date, scorecardPhoto: photo)
+        score = Score(score: scoreValue, courseName: courseName, date: date, scorecardPhoto: photo, scoreIdentifier: self.scoreIdentifier, courseIdentifier: self.courseIdentifier, holes: holes)
     }
     
     //MARK: UIPickerView
@@ -93,10 +115,6 @@ class ScoresViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
     
     func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
         return courses[row].courseName
-    }
-    
-    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-        courseNameTextField.text = courses[row].courseName
     }
     
     func pickerView(_ pickerView: UIPickerView, attributedTitleForRow row: Int, forComponent component: Int) -> NSAttributedString? {
@@ -155,6 +173,7 @@ class ScoresViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
         dateTextField.inputView = datePicker
     }
     
+    // Done was pressed on the date picker, populate the text on the date field and hide the toolbar
     @objc func donePressedForDatePicker() {
         // format date
         let dateFormatter = DateFormatter()
@@ -164,10 +183,12 @@ class ScoresViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
         self.view.endEditing(true)
     }
     
+    // Cancel was pressed on the date picker and hide the tool bar
     @objc func cancelPressedForDatePicker() {
         self.view.endEditing(true)
     }
     
+    // Puts the available courses into a picker that is then placed inside a toolbar
     func createCoursePicker(_ textField : UITextField){
         
         // UIPickerView
@@ -192,19 +213,25 @@ class ScoresViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
         courseNameTextField.inputAccessoryView = toolBar
     }
     
+    // Done was pressed on the course picker, populate the text field and hide the toolbar
     @objc func doneClick() {
         courseNameTextField.text = courses[coursePicker.selectedRow(inComponent: 0)].courseName
+        courseIdentifier = courses[coursePicker.selectedRow(inComponent: 0)].courseIdentifier
         courseNameTextField.resignFirstResponder()
     }
+    
+    // Cancel was clicked on the course picker, remove the text from the course name text field and hide the tool bar
     @objc func cancelClick() {
         courseNameTextField.text = ""
         courseNameTextField.resignFirstResponder()
     }
     
+    // Load in the list of saved courses to be used in the course picker
     func loadCourses() -> [Course]? {
         return NSKeyedUnarchiver.unarchiveObject(withFile: Course.ArchiveURL.path) as? [Course]
     }
     
+    // Check to see if we have selected both a course and date and then enable the save button
     func textFieldDidEndEditing(_ textField: UITextField) {
         switch textField {
         case courseNameTextField:
@@ -218,15 +245,9 @@ class ScoresViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
         default:
             saveButton.isEnabled = false
         }
-    }
-    
-    @objc private func textDidChange(_ notification: Notification) {
-        // Update save button
-        let text = courseNameTextField.text ?? ""
-        saveButton.isEnabled = !text.isEmpty
         
         if saveButton.isEnabled {
-            navigationItem.title = text
+            navigationItem.title = dateTextField.text ?? ""
         }
     }
     
@@ -238,15 +259,15 @@ class ScoresViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
     @IBAction func selectScorecardImage(_ sender: Any) {
         // Hide the keyboard
         /*courseNameTextField.resignFirstResponder()
-        dateTextField.resignFirstResponder()
-        
-        // UIImagePickerController is a view controller that lets a user pick media from their photo library
-        let imagePickerController = UIImagePickerController()
-        
-        // Make sure ViewController is notified when the user picks an image
-        imagePickerController.delegate = self
-        
-        present(imagePickerController, animated: true, completion: nil)*/
+         dateTextField.resignFirstResponder()
+         
+         // UIImagePickerController is a view controller that lets a user pick media from their photo library
+         let imagePickerController = UIImagePickerController()
+         
+         // Make sure ViewController is notified when the user picks an image
+         imagePickerController.delegate = self
+         
+         present(imagePickerController, animated: true, completion: nil)*/
         let alert = UIAlertController(title: "Choose Image", message: nil, preferredStyle: .actionSheet)
         alert.addAction(UIAlertAction(title: "Camera", style: .default, handler: { _ in
             // Opens the camera
@@ -301,5 +322,5 @@ class ScoresViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
             animated: true,
             completion: nil)
     }
-    
 }
+

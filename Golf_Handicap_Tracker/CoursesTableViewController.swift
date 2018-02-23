@@ -23,6 +23,8 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        //self.clearDiskCache()
+        
         // Makes the hamburger menu reveal
         open.target = self.revealViewController()
         open.action = #selector(SWRevealViewController.revealToggle(_:))
@@ -31,7 +33,7 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
         //navigationItem.leftBarButtonItem = editButtonItem
         
         // Recognize right swipe gesture
-        self.view.addGestureRecognizer(self.revealViewController().panGestureRecognizer())
+        //self.view.addGestureRecognizer(self.revealViewController().panGestureRecognizer())
         
         // Setup search controller
         searchController.searchResultsUpdater = self
@@ -133,6 +135,10 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
             self.performSegue(withIdentifier: "AddScore", sender: tableView.cellForRow(at: indexPath))
         }
         
+        let viewAllScores = UITableViewRowAction(style: .normal, title: "View Scores") { action, indexPath in
+            self.performSegue(withIdentifier: "ViewAllScores", sender: tableView.cellForRow(at: indexPath))
+        }
+        
         let delete = UITableViewRowAction(style: .destructive, title: "Delete") { action, indexPath in
             // Delete the row from the data source
             self.courses.remove(at: indexPath.row)
@@ -143,7 +149,7 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
         
         addScores.backgroundColor = UIColor.init(red: 3/255, green: 121/255, blue: 0/255, alpha: 1.0)
         
-        return [delete, addScores]
+        return [delete, addScores, viewAllScores]
     }
 
     // MARK: - Navigation
@@ -154,6 +160,19 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
         switch (segue.identifier ?? "") {
         case "AddCourse":
             os_log("Adding a new course", log: OSLog.default, type: .debug)
+        case "ViewAllScores":
+            guard let scoresTableViewController = segue.destination as? ScoresTableViewController else {
+                fatalError("Unexpected destination: \(segue.destination)")
+            }
+            guard let cellViewController = sender as? CourseTableViewCell else {
+                fatalError("Unexpected sender: \(String(describing: sender))")
+            }
+            guard let indexPath = tableView.indexPath(for: cellViewController) else {
+                fatalError("The selected cell is not being displayed by the table")
+            }
+            let selectedCourse = filteredCourses[indexPath.row]
+            scoresTableViewController.searchString = selectedCourse.courseName
+            os_log("Viewing all scores", log: OSLog.default, type: .debug)
         case "AddScore":
             guard let scoresViewController = segue.destination as? ScoresViewController else {
                 fatalError("Unexpected destination: \(segue.destination)")
@@ -164,8 +183,9 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
             guard let indexPath = tableView.indexPath(for: cellViewController) else {
                 fatalError("The selected cell is not being displayed by the table")
             }
-            let selectedCourse = courses[indexPath.row]
+            let selectedCourse = filteredCourses[indexPath.row]
             scoresViewController.preselectedCourse = selectedCourse.courseName
+            scoresViewController.preselectedCourseIdentifier = selectedCourse.courseIdentifier
             os_log("Adding a new score", log: OSLog.default, type: .debug)
         case "CourseDetail":
             guard let courseDetailViewController = segue.destination as? CourseViewController else {
@@ -178,7 +198,7 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
                 fatalError("The selected cell is not being displayed by the table")
             }
             
-            let selectedCourse = courses[indexPath.row]
+            let selectedCourse = filteredCourses[indexPath.row]
             courseDetailViewController.course = selectedCourse
         default:
             fatalError("Unexpected Segue Identifier; \(String(describing: segue.identifier))")
@@ -290,9 +310,9 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
             return "N/A"
         }
         
-        if courseIndexes.count < 5 {
+        /*if courseIndexes.count < 5 {
             return "N/A"
-        }
+        }*/
             
         handicapIndex = calculateHandicapIndex(courseIndexes: courseIndexes, isNineHoleCourse: course.isNineHoleCourse)
         
@@ -318,7 +338,7 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
         indexFormatter.maximumFractionDigits = 1
         indexFormatter.roundingMode = .down
         
-        if courseIndexes.count >= 5 && courseIndexes.count <= 6 {
+        if !courseIndexes.isEmpty && courseIndexes.count <= 6 {
             // Retrieve only the lowest one
             handicapIndex = courseIndexes[0] * 0.96
         }
@@ -431,5 +451,15 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
         }
         
         return Double(indexFormatter.string(for: handicapIndex)!)!
+    }
+    
+    func clearDiskCache() {
+        let fileManager = FileManager.default
+        let myDocuments = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let diskCacheStorageBaseUrl = myDocuments.appendingPathComponent("courses")
+        guard let filePaths = try? fileManager.contentsOfDirectory(at: diskCacheStorageBaseUrl, includingPropertiesForKeys: nil, options: []) else { return }
+        for filePath in filePaths {
+            try? fileManager.removeItem(at: filePath)
+        }
     }
 }

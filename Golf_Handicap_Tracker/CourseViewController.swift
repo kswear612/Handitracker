@@ -22,19 +22,20 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
     @IBOutlet weak var nineHoleSwitch: UISwitch!
     
     var course: Course?
+    var courseIdentifier = ""
     var imagePicker = UIImagePickerController()
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Handle the text field's user input through delegate callbacks
+        // Handle the text field and image picker user input through delegate callbacks
         courseNameTextField.delegate = self
         imagePicker.delegate = self
         
-        // Register the view controller as an observer of the text fields
+        // Register the view controller as an observer of the text fields so we can enable the save button at the right time
         NotificationCenter.default.addObserver(self, selector: #selector(textDidChange(_:)), name: Notification.Name.UITextFieldTextDidChange, object: nil)
         
-        // Set up views if editing an existing course
+        // Populate data if we have an existing course
         if let course = course {
             navigationItem.title = course.courseName
             courseNameTextField.text = course.courseName
@@ -44,11 +45,19 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
             courseSlopeSlider.value = Float(course.courseSlope)
             courseSlopeLabel.text = String(Int(courseSlopeSlider.value))
             nineHoleSwitch.isOn = course.isNineHoleCourse
+            courseIdentifier = course.courseIdentifier
+        }
+        else {
+            courseIdentifier = UUID().uuidString
         }
         
         // Enable the Save button only if the text field has a valid course name
         let text = courseNameTextField.text ?? ""
         saveButton.isEnabled = !text.isEmpty
+        
+        // Create gesture recognizer that will dismiss the keyboard if the user taps outside the keyboard
+        let tap: UITapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(self.dismissKeyboard))
+        view.addGestureRecognizer(tap)
     }
     
     //MARK: UITextFieldDelegate
@@ -109,8 +118,8 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
         let courseSlope = numberFormatter.string(for: courseSlopeSlider.value)!
         let isNineHoleCourse = nineHoleSwitch.isOn
         
-        // Set the meal to be passed to CourseTableViewController after the unwind segue
-        course = Course(courseName: courseName, photo: photo, courseRating: Double(courseRating)!, courseSlope: Int(courseSlope)!, isNineHoleCourse: isNineHoleCourse)
+        // Set the course to be passed to CourseTableViewController after the unwind segue
+        course = Course(courseName: courseName, photo: photo, courseRating: Double(courseRating)!, courseSlope: Int(courseSlope)!, isNineHoleCourse: isNineHoleCourse, courseIdentifier: self.courseIdentifier)
     }
     
     //MARK: Actions
@@ -190,5 +199,11 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
         if saveButton.isEnabled {
             navigationItem.title = text
         }
+    }
+    
+    //Calls this function when the tap is recognized.
+    @objc func dismissKeyboard() {
+        //Causes the view (or one of its embedded text fields) to resign the first responder status.
+        view.endEditing(true)
     }
 }
