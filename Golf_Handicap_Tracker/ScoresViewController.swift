@@ -18,6 +18,7 @@ class ScoresViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
     @IBOutlet weak var scoreSlider: UISlider!
     @IBOutlet weak var saveButton: UIBarButtonItem!
     @IBOutlet weak var photoImageView: UIImageView!
+    @IBOutlet var myView: UIView!
     
     let datePicker = UIDatePicker()
     var coursePicker = UIPickerView()
@@ -297,8 +298,8 @@ class ScoresViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
          otherwise app will crash on iPad */
         switch UIDevice.current.userInterfaceIdiom {
         case .pad:
-            alert.popoverPresentationController?.sourceView = sender as? UIView
-            alert.popoverPresentationController?.sourceRect = (sender as AnyObject).bounds
+            alert.popoverPresentationController?.sourceView = myView
+            //alert.popoverPresentationController?.sourceRect = myView.bounds
             alert.popoverPresentationController?.permittedArrowDirections = .up
         default:
             break

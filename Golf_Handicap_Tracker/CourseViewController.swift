@@ -20,6 +20,7 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
     @IBOutlet weak var courseRatingLabel: UILabel!
     @IBOutlet weak var courseSlopeLabel: UILabel!
     @IBOutlet weak var nineHoleSwitch: UISwitch!
+    @IBOutlet var myView: UIView!
     
     var course: Course?
     var courseIdentifier = ""
@@ -152,8 +153,8 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
          otherwise app will crash on iPad */
         switch UIDevice.current.userInterfaceIdiom {
         case .pad:
-            alert.popoverPresentationController?.sourceView = sender as? UIView
-            alert.popoverPresentationController?.sourceRect = (sender as AnyObject).bounds
+            alert.popoverPresentationController?.sourceView = myView
+            //alert.popoverPresentationController?.sourceRect = myView.bounds
             alert.popoverPresentationController?.permittedArrowDirections = .up
         default:
             break
