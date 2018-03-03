@@ -23,10 +23,6 @@ class ScoresTableViewController: UITableViewController, UISearchResultsUpdating 
         
         //self.clearDiskCache()
         
-        // Makes the hamburger menu reveal
-        open.target = self.revealViewController()
-        open.action = #selector(SWRevealViewController.revealToggle(_:))
-        
         // Recognize right swipe gesture
         //self.view.addGestureRecognizer(self.revealViewController().panGestureRecognizer())
         

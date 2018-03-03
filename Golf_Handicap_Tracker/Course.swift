@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import UIKit
 import os.log
 
 class Course: NSObject, NSCoding {

@@ -19,15 +19,14 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
     let searchController = UISearchController(searchResultsController: nil)
     var scores = [Score]()
     var courseHandicapDifferentials = [String: [Double]]()
+    @IBOutlet var tableViewOutlet: UITableView!
+    @IBOutlet weak var editButton: UIBarButtonItem!
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         //self.clearDiskCache()
-        
-        // Makes the hamburger menu reveal
-        open.target = self.revealViewController()
-        open.action = #selector(SWRevealViewController.revealToggle(_:))
         
         // Use the edit button item provided by the table view controller
         //navigationItem.leftBarButtonItem = editButtonItem
@@ -151,6 +150,18 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
         
         return [delete, addScores, viewAllScores]
     }
+    
+    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
+        return true
+    }
+    
+    override func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
+        let item = courses[sourceIndexPath.row]
+        courses.remove(at: sourceIndexPath.row)
+        courses.insert(item, at: destinationIndexPath.row)
+        filteredCourses = courses
+        saveCourses()
+    }
 
     // MARK: - Navigation
 
@@ -245,6 +256,16 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
 
     @IBAction func unwindFromScoreCancel(sender: UIStoryboardSegue) {
         dismiss(animated: true, completion:nil)
+    }
+    
+    @IBAction func editTable(_ sender: Any) {
+        tableViewOutlet.isEditing = !tableViewOutlet.isEditing
+        if tableViewOutlet.isEditing {
+            editButton.title = "Done"
+        }
+        else {
+            editButton.title = "Edit"
+        }
     }
     
     //MARK: Private Methods

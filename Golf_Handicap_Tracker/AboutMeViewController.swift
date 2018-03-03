@@ -29,14 +29,6 @@ class AboutMeViewController: UIViewController, UITextFieldDelegate, UIPickerView
         
         genders = ["Male", "Female", "Not Specified"]
         
-
-        // Makes the hamburger menu reveal
-        open.target = self.revealViewController()
-        open.action = #selector(SWRevealViewController.revealToggle(_:))
-        
-        // Recognize right swipe gesture
-        //self.view.addGestureRecognizer(self.revealViewController().panGestureRecognizer())
-        
         // Configure Save Button
         saveButton.isEnabled = false
         
