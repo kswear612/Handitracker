@@ -119,6 +119,12 @@ class AboutMeViewController: UIViewController, UITextFieldDelegate, UIPickerView
         else {
             os_log("Failed to save about me...", log: OSLog.default, type: .debug)
         }
+        
+        firstNameTextField.resignFirstResponder()
+        lastNameTextField.resignFirstResponder()
+        genderPicker.resignFirstResponder()
+        genderTextField.resignFirstResponder()
+        ageTextField.resignFirstResponder()
     }
     
     

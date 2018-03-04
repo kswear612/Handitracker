@@ -55,6 +55,21 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
         
         calculateHandicapDifferentials()
     }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        scores = [Score]()
+        
+        // Load any saved scores
+        if let savedScores = loadScores() {
+            scores += savedScores
+        }
+        
+        calculateHandicapDifferentials()
+        self.tableView.reloadData()
+        
+    }
 
     // MARK: - Table view data source
 
