@@ -46,6 +46,27 @@ class ScoresTableViewController: UITableViewController, UISearchResultsUpdating 
         }
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        scores = [Score]()
+        
+        // Load any saved scores
+        if let savedScores = loadScores() {
+            scores += savedScores
+        }
+        
+        filteredScores = scores
+        
+        if (!searchString.isEmpty) {
+            searchController.searchBar.text = searchString
+            updateSearchResults(for: searchController)
+        }
+        
+        self.tableView.reloadData()
+        
+    }
+    
     // MARK: - Table view data source
     
     override func numberOfSections(in tableView: UITableView) -> Int {
@@ -129,9 +150,25 @@ class ScoresTableViewController: UITableViewController, UISearchResultsUpdating 
         }
         
         let delete = UITableViewRowAction(style: .destructive, title: "Delete") { action, indexPath in
-            // Delete the row from the data source
-            self.scores.remove(at: indexPath.row)
-            self.filteredScores.remove(at: indexPath.row)
+            // Determine if the grid is filtered or not
+            if self.filteredScores[indexPath.row].scoreIdentifier != self.scores[indexPath.row].scoreIdentifier {
+                // Find the corresponding score in the main array and remove it
+                var counter = 0
+                for selectedScore in self.scores {
+                    if self.filteredScores[indexPath.row].scoreIdentifier == selectedScore.scoreIdentifier {
+                        self.scores.remove(at: counter)
+                    }
+                    counter += 1
+                }
+                
+                // Now delete the record from the filtered list
+                self.filteredScores.remove(at: indexPath.row)
+            }
+            else {
+                self.scores.remove(at: indexPath.row)
+                self.filteredScores.remove(at: indexPath.row)
+            }
+            
             self.saveScores()
             tableView.deleteRows(at: [indexPath], with: .fade)
         }
@@ -195,9 +232,26 @@ class ScoresTableViewController: UITableViewController, UISearchResultsUpdating 
     @IBAction func unwindFromScoreSave(sender: UIStoryboardSegue) {
         if let sourceViewController = sender.source as? ScoresViewController, let score = sourceViewController.score {
             if let selectedIndexPath = tableView.indexPathForSelectedRow {
-                // Update an existing score
-                scores[selectedIndexPath.row] = score
-                filteredScores[selectedIndexPath.row] = score
+                // Check to see if the record we are updating is filtered
+                if filteredScores[selectedIndexPath.row].scoreIdentifier == score.scoreIdentifier {
+                    // find the array position of the score in the main array
+                    var counter = 0
+                    for selectedScore in scores {
+                        if selectedScore.scoreIdentifier == score.scoreIdentifier {
+                            scores[counter] = score
+                        }
+                        counter += 1
+                    }
+                    // Update the filtered list
+                    filteredScores[selectedIndexPath.row] = score
+                }
+                // Scores aren't filtered so update both arrays in the same spot
+                else {
+                    // Update an existing score
+                    scores[selectedIndexPath.row] = score
+                    filteredScores[selectedIndexPath.row] = score
+                }
+                
                 tableView.reloadRows(at: [selectedIndexPath], with: .none)
             }
             else {

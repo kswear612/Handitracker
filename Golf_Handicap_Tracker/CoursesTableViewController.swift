@@ -121,10 +121,26 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
     // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            // Delete the row from the data source
-            courses.remove(at: indexPath.row)
-            filteredCourses.remove(at: indexPath.row)
-            saveCourses()
+            // Determine if the grid is filtered or not
+            if self.filteredCourses[indexPath.row].courseIdentifier != self.courses[indexPath.row].courseIdentifier {
+                // Find the corresponding course in the main array and remove it
+                var counter = 0
+                for selectedCourse in self.courses {
+                    if self.filteredCourses[indexPath.row].courseIdentifier == selectedCourse.courseIdentifier {
+                        self.courses.remove(at: counter)
+                    }
+                    counter += 1
+                }
+                
+                // Now delete the record from the filtered list
+                self.filteredCourses.remove(at: indexPath.row)
+            }
+            else {
+                self.courses.remove(at: indexPath.row)
+                self.filteredCourses.remove(at: indexPath.row)
+            }
+            
+            self.saveCourses()
             tableView.deleteRows(at: [indexPath], with: .fade)
         } else if editingStyle == .insert {
             // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
@@ -154,9 +170,25 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
         }
         
         let delete = UITableViewRowAction(style: .destructive, title: "Delete") { action, indexPath in
-            // Delete the row from the data source
-            self.courses.remove(at: indexPath.row)
-            self.filteredCourses.remove(at: indexPath.row)
+            // Determine if the grid is filtered or not
+            if self.filteredCourses[indexPath.row].courseIdentifier != self.courses[indexPath.row].courseIdentifier {
+                // Find the corresponding course in the main array and remove it
+                var counter = 0
+                for selectedCourse in self.courses {
+                    if self.filteredCourses[indexPath.row].courseIdentifier == selectedCourse.courseIdentifier {
+                        self.courses.remove(at: counter)
+                    }
+                    counter += 1
+                }
+                
+                // Now delete the record from the filtered list
+                self.filteredCourses.remove(at: indexPath.row)
+            }
+            else {
+                self.courses.remove(at: indexPath.row)
+                self.filteredCourses.remove(at: indexPath.row)
+            }
+            
             self.saveCourses()
             tableView.deleteRows(at: [indexPath], with: .fade)
         }
@@ -235,10 +267,25 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
     @IBAction func unwindFromCourseSave(sender: UIStoryboardSegue) {
         if let sourceViewController = sender.source as? CourseViewController, let course = sourceViewController.course {
             if let selectedIndexPath = tableView.indexPathForSelectedRow {
-                // Update an existing course
-                courses[selectedIndexPath.row] = course
-                filteredCourses[selectedIndexPath.row] = course
-                tableView.reloadRows(at: [selectedIndexPath], with: .none)
+                // Check to see if the record we are updating is filtered
+                if filteredCourses[selectedIndexPath.row].courseIdentifier == course.courseIdentifier {
+                    // find the array position of the course in the main array
+                    var counter = 0
+                    for selectedCourse in courses {
+                        if selectedCourse.courseIdentifier == course.courseIdentifier {
+                            courses[counter] = course
+                        }
+                        counter += 1
+                    }
+                    // Update the filtered list
+                    filteredCourses[selectedIndexPath.row] = course
+                }
+                // Courses aren't filtered so update both arrays in the same spot
+                else {
+                    // Update an existing score
+                    courses[selectedIndexPath.row] = course
+                    filteredCourses[selectedIndexPath.row] = course
+                }
             }
             else {
                 // Add a new course
