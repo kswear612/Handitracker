@@ -216,8 +216,10 @@ class ScoresViewController: UIViewController, UIPickerViewDataSource, UIPickerVi
     
     // Done was pressed on the course picker, populate the text field and hide the toolbar
     @objc func doneClick() {
-        courseNameTextField.text = courses[coursePicker.selectedRow(inComponent: 0)].courseName
-        courseIdentifier = courses[coursePicker.selectedRow(inComponent: 0)].courseIdentifier
+        if (courses.count > 0) {
+            courseNameTextField.text = courses[coursePicker.selectedRow(inComponent: 0)].courseName
+            courseIdentifier = courses[coursePicker.selectedRow(inComponent: 0)].courseIdentifier
+        }
         courseNameTextField.resignFirstResponder()
     }
     
