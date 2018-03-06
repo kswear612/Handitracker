@@ -18,6 +18,7 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
     var filteredCourses = [Course]()
     let searchController = UISearchController(searchResultsController: nil)
     var scores = [Score]()
+    var bestHandicapIndex = 0.0
     var courseHandicapDifferentials = [String: [Double]]()
     @IBOutlet var tableViewOutlet: UITableView!
     @IBOutlet weak var editButton: UIBarButtonItem!
@@ -67,6 +68,7 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
         }
         
         calculateHandicapDifferentials()
+        
         self.tableView.reloadData()
         
     }
@@ -531,6 +533,17 @@ class CoursesTableViewController: UITableViewController,  UISearchResultsUpdatin
         // ele if femal and the index is greater than 20.2 on 9 hole course then reset to the max
         else if (gender == "Female" && handicapIndex > 20.2 && isNineHoleCourse) {
             handicapIndex = 20.2
+        }
+        
+        if (bestHandicapIndex == 0.0) {
+            bestHandicapIndex = handicapIndex
+        }
+        else if handicapIndex < bestHandicapIndex {
+            bestHandicapIndex = handicapIndex
+        }
+        
+        if bestHandicapIndex != 0.0 {
+            navigationItem.title = "Handicap Index " + String(Double(indexFormatter.string(for: bestHandicapIndex)!)!)
         }
         
         return Double(indexFormatter.string(for: handicapIndex)!)!
