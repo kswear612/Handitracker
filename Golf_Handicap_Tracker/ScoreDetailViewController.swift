@@ -19,6 +19,7 @@ class ScoreDetailViewController: UIViewController, UITableViewDelegate, UITableV
     var scoreIdentifier = ""
     var courseIdentifier = ""
     var sliderValuesArray = [Float](repeating: 0.0, count: 18)
+    var totalScore = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -26,28 +27,11 @@ class ScoreDetailViewController: UIViewController, UITableViewDelegate, UITableV
         scoreDetailTableView.delegate = self
         scoreDetailTableView.dataSource = self
         
-        /*if score != nil, let savedScoreDetail = score?.scoreDetail {
-         holes = savedScoreDetail.holes
-         if (holes.count == 18) {
-         for hole in holes {
-         sliderValuesArray[hole.holeNumber-1] = Float(hole.holeStrokes)
-         }
-         }
-         else {
-         for i in 1...18 {
-         holes.append(Hole(holeNumber: i, holeStrokes: 0)!)
-         }
-         score?.scoreDetail?.holes = holes
-         score?.scoreDetail?.roundTotal = 0
-         }
-         }
-         else {
-         fatalError("Score did not get passed into the detail")
-         }*/
         holes = (score?.holes)!
         if (holes.count == 18) {
             for hole in holes {
                 sliderValuesArray[hole.holeNumber-1] = Float(hole.holeStrokes)
+                totalScore += Int(sliderValuesArray[hole.holeNumber-1])
             }
         }
         else {
@@ -56,6 +40,8 @@ class ScoreDetailViewController: UIViewController, UITableViewDelegate, UITableV
             }
             score?.holes = holes
         }
+        
+        navigationItem.title = "Total Score: " + String(totalScore)
     }
     
     //MARK: UITableViewDelegate
@@ -111,7 +97,10 @@ class ScoreDetailViewController: UIViewController, UITableViewDelegate, UITableV
     
     //MARK: Private Methods
     @objc func sliderValueChanged(sender: UISlider) {
+        totalScore += Int(sender.value) - Int(sliderValuesArray[sender.tag])
+        navigationItem.title = "Total Score: " + String(totalScore)
         sliderValuesArray[sender.tag] = sender.value
+        
     }
     
 }

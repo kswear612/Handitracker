@@ -125,7 +125,7 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
     
     //MARK: Actions
     @IBAction func selectCourseImage(_ sender: Any) {
-        let alert = UIAlertController(title: "Choose Image", message: nil, preferredStyle: .actionSheet)
+        let alert = UIAlertController(title: "Image Options", message: nil, preferredStyle: .actionSheet)
         alert.addAction(UIAlertAction(title: "Camera", style: .default, handler: { _ in
             if(UIImagePickerController .isSourceTypeAvailable(UIImagePickerControllerSourceType.camera))
             {
@@ -146,6 +146,21 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
             self.present(self.imagePicker, animated: true, completion: nil)
         }))
         
+        alert.addAction(UIAlertAction(title: "View Image", style: .default, handler: { _ in
+            // Opens the image in full screen
+            let imageView = self.photoImageView
+            let newImageView = UIImageView(image: imageView?.image)
+            newImageView.frame = UIScreen.main.bounds
+            newImageView.backgroundColor = .black
+            newImageView.contentMode = .scaleAspectFit
+            newImageView.isUserInteractionEnabled = true
+            let tap = UITapGestureRecognizer(target: self, action: #selector(self.dismissFullscreenImage))
+            newImageView.addGestureRecognizer(tap)
+            self.view.addSubview(newImageView)
+            self.navigationController?.isNavigationBarHidden = true
+            self.tabBarController?.tabBar.isHidden = true
+        }))
+        
         alert.addAction(UIAlertAction.init(title: "Cancel", style: .cancel, handler: nil))
         
         /*If you want work actionsheet on ipad
@@ -161,6 +176,12 @@ class CourseViewController: UIViewController, UITextFieldDelegate, UIImagePicker
         }
         
         self.present(alert, animated: true, completion: nil)
+    }
+    
+    @objc func dismissFullscreenImage(_ sender: UITapGestureRecognizer) {
+        self.navigationController?.isNavigationBarHidden = false
+        self.tabBarController?.tabBar.isHidden = false
+        sender.view?.removeFromSuperview()
     }
     
     func noCamera(){
